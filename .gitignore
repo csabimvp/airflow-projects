@@ -1,0 +1,6 @@
+*venv
+*archive
+*.git
+*test
+*__pycache__
+/assets/**/*.json
