@@ -7,5 +7,5 @@
 
 # SQL inserts
 dags/hargreaves/sql/hl-master_data.sql
-dags/strava/sql/strava-athlete_activites.sql
+dags/strava/sql/strava-athlete_activities.sql
 dags/strava/sql/strava-athlete_stats.sql
