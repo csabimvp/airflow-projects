@@ -5,11 +5,16 @@ from dataclasses import dataclass
 
 import requests
 
-from ...lib.Processors import DataProcessor, ItemProcessor
+# from ...lib.Processors import DataProcessor, ItemProcessor
 
-# lib = os.path.join(pathlib.Path(__file__).parent.parent.parent.resolve(), "lib")
-# sys.path.append(lib)
-# from Processors import Authenticator, DataProcessor, ItemProcessor
+lib = os.path.join(pathlib.Path(__file__).parent.parent.parent.resolve(), "lib")
+sys.path.append(lib)
+from Processors import DataProcessor, ItemProcessor, LogItem
+
+
+@dataclass
+class LogData(DataProcessor):
+    dag_logs: list
 
 
 # Dataclass to store HL Fund Item data.
@@ -83,6 +88,9 @@ class HLMasterData(DataProcessor):
 
 # Fetching data from the HL API.
 def FetchHargreavesData(page_size):
+    log_item = LogItem(
+        project_name="hargreaves", task_name=FetchHargreavesData.__name__
+    )
     hl = list()
     start = 0
     keep_going = True
@@ -121,77 +129,94 @@ def FetchHargreavesData(page_size):
                 for key in numbers.keys():
                     try:
                         numbers[key] = float(item[key])
-                    except ValueError:
+                    except ValueError as e:
                         pass
 
-                fund_item = HLFundItem(
-                    sedol=item["sedol"],
-                    aims=item["aims"],
-                    annual_charge=float(item["annual_charge"]),
-                    annual_saving=float(item["annual_saving"]),
-                    bid_price=float(numbers["bid_price"]),
-                    citicode=item["citicode"],
-                    closed_fund=int(item["closed_fund"]),
-                    company_id=int(item["company_id"]),
-                    company_name=item["company_name"],
-                    cost_segment=int(item["cost_segment"]),
-                    full_description=item["full_description"],
-                    fund_name=item["fund_name"],
-                    fund_size=float(item["fund_size"]),
-                    historic_yield=float(item["historic_yield"]),
-                    holding_fee=float(item["holding_fee"]),
-                    icvc=int(item["icvc"]),
-                    initial_charge=float(item["initial_charge"]),
-                    initial_commission=float(item["initial_commission"]),
-                    initial_saving=float(item["initial_saving"]),
-                    is_oeic=int(item["is_oeic"]),
-                    isaable=int(item["isaable"]),
-                    kiid=int(item["kiid"]),
-                    launch_currency=item["launch_currency"],
-                    launchdate=launchdate,
-                    lsmininv=float(item["lsmininv"]),
-                    lump_sum_min_inv=float(item["lump_sum_min_inv"]),
-                    net_annual_charge=float(item["net_annual_charge"]),
-                    num_holdings=float(item["num_holdings"]),
-                    offer_price=float(numbers["offer_price"]),
-                    other_expenses=float(item["other_expenses"]),
-                    payment_frequency=item["payment_frequency"],
-                    payment_type=item["payment_type"],
-                    percent_change=float(item["percent_change"]),
-                    perf0t12m=float(numbers["perf0t12m"]),
-                    perf120m=float(numbers["perf120m"]),
-                    perf12m=float(numbers["perf12m"]),
-                    perf12t24m=float(numbers["perf12t24m"]),
-                    perf24t36m=float(numbers["perf24t36m"]),
-                    perf36m=float(numbers["perf36m"]),
-                    perf36t48m=float(numbers["perf36t48m"]),
-                    perf3m=float(numbers["perf3m"]),
-                    perf48t60m=float(numbers["perf48t60m"]),
-                    perf60m=float(numbers["perf60m"]),
-                    perf6m=float(numbers["perf6m"]),
-                    reg_saver=int(item["reg_saver"]),
-                    reg_saver_min_inv=float(item["reg_saver_min_inv"]),
-                    sector_id=int(item["sector_id"]),
-                    sector_name=item["sector_name"],
-                    sicav=int(item["sicav"]),
-                    sippable=int(item["sippable"]),
-                    total_expenses=float(item["total_expenses"]),
-                    tracker=int(item["tracker"]),
-                    unit_type=item["unit_type"],
-                    update_time=update_time,
-                    updated=updated,
-                    valuation_frequency=item["valuation_frequency"],
-                    fund_yield=float(item["yield"]),
-                    Wealth150=int(item["Wealth150"]),
-                )
+                try:
+                    fund_item = HLFundItem(
+                        sedol=item["sedol"],
+                        aims=item["aims"],
+                        annual_charge=float(item["annual_charge"]),
+                        annual_saving=float(item["annual_saving"]),
+                        bid_price=float(numbers["bid_price"]),
+                        citicode=item["citicode"],
+                        closed_fund=int(item["closed_fund"]),
+                        company_id=int(item["company_id"]),
+                        company_name=item["company_name"],
+                        cost_segment=int(item["cost_segment"]),
+                        full_description=item["full_description"],
+                        fund_name=item["fund_name"],
+                        fund_size=float(item["fund_size"]),
+                        historic_yield=float(item["historic_yield"]),
+                        holding_fee=float(item["holding_fee"]),
+                        icvc=int(item["icvc"]),
+                        initial_charge=float(item["initial_charge"]),
+                        initial_commission=float(item["initial_commission"]),
+                        initial_saving=float(item["initial_saving"]),
+                        is_oeic=int(item["is_oeic"]),
+                        isaable=int(item["isaable"]),
+                        kiid=int(item["kiid"]),
+                        launch_currency=item["launch_currency"],
+                        launchdate=launchdate,
+                        lsmininv=float(item["lsmininv"]),
+                        lump_sum_min_inv=float(item["lump_sum_min_inv"]),
+                        net_annual_charge=float(item["net_annual_charge"]),
+                        num_holdings=float(item["num_holdings"]),
+                        offer_price=float(numbers["offer_price"]),
+                        other_expenses=float(item["other_expenses"]),
+                        payment_frequency=item["payment_frequency"],
+                        payment_type=item["payment_type"],
+                        percent_change=float(item["percent_change"]),
+                        perf0t12m=float(numbers["perf0t12m"]),
+                        perf120m=float(numbers["perf120m"]),
+                        perf12m=float(numbers["perf12m"]),
+                        perf12t24m=float(numbers["perf12t24m"]),
+                        perf24t36m=float(numbers["perf24t36m"]),
+                        perf36m=float(numbers["perf36m"]),
+                        perf36t48m=float(numbers["perf36t48m"]),
+                        perf3m=float(numbers["perf3m"]),
+                        perf48t60m=float(numbers["perf48t60m"]),
+                        perf60m=float(numbers["perf60m"]),
+                        perf6m=float(numbers["perf6m"]),
+                        reg_saver=int(item["reg_saver"]),
+                        reg_saver_min_inv=float(item["reg_saver_min_inv"]),
+                        sector_id=int(item["sector_id"]),
+                        sector_name=item["sector_name"],
+                        sicav=int(item["sicav"]),
+                        sippable=int(item["sippable"]),
+                        total_expenses=float(item["total_expenses"]),
+                        tracker=int(item["tracker"]),
+                        unit_type=item["unit_type"],
+                        update_time=update_time,
+                        updated=updated,
+                        valuation_frequency=item["valuation_frequency"],
+                        fund_yield=float(item["yield"]),
+                        Wealth150=int(item["Wealth150"]),
+                    )
+                except ValueError as e:
+                    log_item.log_actions(
+                        data_items=len(hl), description=e, status_code=r.status_code
+                    )
+                except KeyError as e:
+                    log_item.log_actions(
+                        data_items=len(hl), description=e, status_code=r.status_code
+                    )
 
                 hl.append(fund_item)
+        else:
+            log_item.log_actions(
+                data_items=len(hl), description=r.reason, status_code=r.status_code
+            )
 
         start += page_size
         print(f"Number of Hargreaves Lansdown Funds downloaded: {len(hl)}")
         if len(result) < page_size:
             keep_going = False
-    return hl
+
+    log_item.log_actions(
+        data_items=len(hl), description=r.reason, status_code=r.status_code
+    )
+    return hl, log_item
 
 
 def main():
@@ -202,11 +227,14 @@ def main():
 
     # Main Function
     page_size = 40
-
-    master_data = FetchHargreavesData(page_size=page_size)
+    master_data, log_item = FetchHargreavesData(page_size=page_size)
     hlData = HLMasterData(master_data=master_data)
     hlData.save_data_to_csv(csv_folder_path=csv_folder_path)
     hlData.save_data_to_sql(schema="hl", sql_folder_path=sql_folder_path)
+
+    # Log process
+    L = LogData(dag_logs=[log_item])
+    L.save_data_to_sql(schema="log", sql_folder_path=sql_folder_path)
 
 
 if __name__ == "__main__":

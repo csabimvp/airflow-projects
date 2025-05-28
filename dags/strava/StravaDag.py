@@ -2,18 +2,22 @@ import os
 import pathlib
 import random
 import string
-
-# import sys
+import sys
 from dataclasses import dataclass
 from datetime import datetime
 
 import requests
 
-from ...lib.Processors import Authenticator, DataProcessor, ItemProcessor
+# from ...lib.Processors import Authenticator, DataProcessor, ItemProcessor
 
-# lib = os.path.join(pathlib.Path(__file__).parent.parent.parent.resolve(), "lib")
-# sys.path.append(lib)
-# from Processors import Authenticator, DataProcessor, ItemProcessor
+lib = os.path.join(pathlib.Path(__file__).parent.parent.parent.resolve(), "lib")
+sys.path.append(lib)
+from Processors import Authenticator, DataProcessor, ItemProcessor, LogItem
+
+
+@dataclass
+class LogData(DataProcessor):
+    dag_logs: list
 
 
 @dataclass
@@ -73,143 +77,168 @@ class StravaData(DataProcessor):
 class StravaApi(Authenticator):
     def __init__(self):
         super().__init__(account="STRAVA")
-        self.RequestRefreshToken()
+        self.auth_log = self.RequestRefreshToken()
 
     def FetchAthleteStats(self):
+        # Log
+        log_item = LogItem(
+            project_name="strava", task_name=self.FetchAthleteStats.__name__
+        )
+
+        # Main
         athlete_id = "87270249"
         date_refreshed = datetime.now().strftime("%Y-%m-%d")
         url = f"https://www.strava.com/api/v3/athletes/{athlete_id}/stats"
-        data = requests.get(url, headers=self.getHeaders()).json()
+        r = requests.get(url, headers=self.getHeaders())
 
-        # All
-        allRun = StravaAthleteStats(
-            activity_id=StravaAthleteStats.generate_id(),
-            activity_count=data["all_run_totals"]["count"],
-            athlete_id=athlete_id,
-            date_refreshed=date_refreshed,
-            distance=data["all_run_totals"]["distance"],
-            elapsed_time=data["all_run_totals"]["elapsed_time"],
-            elevation_gain=data["all_run_totals"]["elevation_gain"],
-            moving_time=data["all_run_totals"]["moving_time"],
-            stat_type="all_time",
-            sport_type="running",
-        )
-        allRide = StravaAthleteStats(
-            activity_id=StravaAthleteStats.generate_id(),
-            activity_count=data["all_ride_totals"]["count"],
-            athlete_id=athlete_id,
-            date_refreshed=date_refreshed,
-            distance=data["all_ride_totals"]["distance"],
-            elapsed_time=data["all_ride_totals"]["elapsed_time"],
-            elevation_gain=data["all_ride_totals"]["elevation_gain"],
-            moving_time=data["all_ride_totals"]["moving_time"],
-            stat_type="all_time",
-            sport_type="cycling",
-        )
-        allSwim = StravaAthleteStats(
-            activity_id=StravaAthleteStats.generate_id(),
-            activity_count=data["all_swim_totals"]["count"],
-            athlete_id=athlete_id,
-            date_refreshed=date_refreshed,
-            distance=data["all_swim_totals"]["distance"],
-            elapsed_time=data["all_swim_totals"]["elapsed_time"],
-            elevation_gain=data["all_swim_totals"]["elevation_gain"],
-            moving_time=data["all_swim_totals"]["moving_time"],
-            stat_type="all_time",
-            sport_type="swimming",
-        )
+        if r.status_code == 200:
+            data = r.json()
+            # All
+            allRun = StravaAthleteStats(
+                activity_id=StravaAthleteStats.generate_id(),
+                activity_count=data["all_run_totals"]["count"],
+                athlete_id=athlete_id,
+                date_refreshed=date_refreshed,
+                distance=data["all_run_totals"]["distance"],
+                elapsed_time=data["all_run_totals"]["elapsed_time"],
+                elevation_gain=data["all_run_totals"]["elevation_gain"],
+                moving_time=data["all_run_totals"]["moving_time"],
+                stat_type="all_time",
+                sport_type="running",
+            )
+            allRide = StravaAthleteStats(
+                activity_id=StravaAthleteStats.generate_id(),
+                activity_count=data["all_ride_totals"]["count"],
+                athlete_id=athlete_id,
+                date_refreshed=date_refreshed,
+                distance=data["all_ride_totals"]["distance"],
+                elapsed_time=data["all_ride_totals"]["elapsed_time"],
+                elevation_gain=data["all_ride_totals"]["elevation_gain"],
+                moving_time=data["all_ride_totals"]["moving_time"],
+                stat_type="all_time",
+                sport_type="cycling",
+            )
+            allSwim = StravaAthleteStats(
+                activity_id=StravaAthleteStats.generate_id(),
+                activity_count=data["all_swim_totals"]["count"],
+                athlete_id=athlete_id,
+                date_refreshed=date_refreshed,
+                distance=data["all_swim_totals"]["distance"],
+                elapsed_time=data["all_swim_totals"]["elapsed_time"],
+                elevation_gain=data["all_swim_totals"]["elevation_gain"],
+                moving_time=data["all_swim_totals"]["moving_time"],
+                stat_type="all_time",
+                sport_type="swimming",
+            )
 
-        # Recent
-        recentRun = StravaAthleteStats(
-            activity_id=StravaAthleteStats.generate_id(),
-            activity_count=data["recent_run_totals"]["count"],
-            athlete_id=athlete_id,
-            date_refreshed=date_refreshed,
-            distance=data["recent_run_totals"]["distance"],
-            elapsed_time=data["recent_run_totals"]["elapsed_time"],
-            elevation_gain=data["recent_run_totals"]["elevation_gain"],
-            moving_time=data["recent_run_totals"]["moving_time"],
-            stat_type="recent",
-            sport_type="running",
-        )
-        recentRide = StravaAthleteStats(
-            activity_id=StravaAthleteStats.generate_id(),
-            activity_count=data["recent_ride_totals"]["count"],
-            athlete_id=athlete_id,
-            date_refreshed=date_refreshed,
-            distance=data["recent_ride_totals"]["distance"],
-            elapsed_time=data["recent_ride_totals"]["elapsed_time"],
-            elevation_gain=data["recent_ride_totals"]["elevation_gain"],
-            moving_time=data["recent_ride_totals"]["moving_time"],
-            stat_type="recent",
-            sport_type="cycling",
-        )
-        recentSwim = StravaAthleteStats(
-            activity_id=StravaAthleteStats.generate_id(),
-            activity_count=data["recent_swim_totals"]["count"],
-            athlete_id=athlete_id,
-            date_refreshed=date_refreshed,
-            distance=data["recent_swim_totals"]["distance"],
-            elapsed_time=data["recent_swim_totals"]["elapsed_time"],
-            elevation_gain=data["recent_swim_totals"]["elevation_gain"],
-            moving_time=data["recent_swim_totals"]["moving_time"],
-            stat_type="recent",
-            sport_type="swimming",
-        )
+            # Recent
+            recentRun = StravaAthleteStats(
+                activity_id=StravaAthleteStats.generate_id(),
+                activity_count=data["recent_run_totals"]["count"],
+                athlete_id=athlete_id,
+                date_refreshed=date_refreshed,
+                distance=data["recent_run_totals"]["distance"],
+                elapsed_time=data["recent_run_totals"]["elapsed_time"],
+                elevation_gain=data["recent_run_totals"]["elevation_gain"],
+                moving_time=data["recent_run_totals"]["moving_time"],
+                stat_type="recent",
+                sport_type="running",
+            )
+            recentRide = StravaAthleteStats(
+                activity_id=StravaAthleteStats.generate_id(),
+                activity_count=data["recent_ride_totals"]["count"],
+                athlete_id=athlete_id,
+                date_refreshed=date_refreshed,
+                distance=data["recent_ride_totals"]["distance"],
+                elapsed_time=data["recent_ride_totals"]["elapsed_time"],
+                elevation_gain=data["recent_ride_totals"]["elevation_gain"],
+                moving_time=data["recent_ride_totals"]["moving_time"],
+                stat_type="recent",
+                sport_type="cycling",
+            )
+            recentSwim = StravaAthleteStats(
+                activity_id=StravaAthleteStats.generate_id(),
+                activity_count=data["recent_swim_totals"]["count"],
+                athlete_id=athlete_id,
+                date_refreshed=date_refreshed,
+                distance=data["recent_swim_totals"]["distance"],
+                elapsed_time=data["recent_swim_totals"]["elapsed_time"],
+                elevation_gain=data["recent_swim_totals"]["elevation_gain"],
+                moving_time=data["recent_swim_totals"]["moving_time"],
+                stat_type="recent",
+                sport_type="swimming",
+            )
 
-        # YtD
-        ytdRun = StravaAthleteStats(
-            activity_id=StravaAthleteStats.generate_id(),
-            activity_count=data["ytd_run_totals"]["count"],
-            athlete_id=athlete_id,
-            date_refreshed=date_refreshed,
-            distance=data["ytd_run_totals"]["distance"],
-            elapsed_time=data["ytd_run_totals"]["elapsed_time"],
-            elevation_gain=data["ytd_run_totals"]["elevation_gain"],
-            moving_time=data["ytd_run_totals"]["moving_time"],
-            stat_type="year_to_date",
-            sport_type="running",
-        )
-        ytdRide = StravaAthleteStats(
-            activity_id=StravaAthleteStats.generate_id(),
-            activity_count=data["ytd_ride_totals"]["count"],
-            athlete_id=athlete_id,
-            date_refreshed=date_refreshed,
-            distance=data["ytd_ride_totals"]["distance"],
-            elapsed_time=data["ytd_ride_totals"]["elapsed_time"],
-            elevation_gain=data["ytd_ride_totals"]["elevation_gain"],
-            moving_time=data["ytd_ride_totals"]["moving_time"],
-            stat_type="year_to_date",
-            sport_type="cycling",
-        )
-        ytdSwim = StravaAthleteStats(
-            activity_id=StravaAthleteStats.generate_id(),
-            activity_count=data["ytd_swim_totals"]["count"],
-            athlete_id=athlete_id,
-            date_refreshed=date_refreshed,
-            distance=data["ytd_swim_totals"]["distance"],
-            elapsed_time=data["ytd_swim_totals"]["elapsed_time"],
-            elevation_gain=data["ytd_swim_totals"]["elevation_gain"],
-            moving_time=data["ytd_swim_totals"]["moving_time"],
-            stat_type="year_to_date",
-            sport_type="swimming",
-        )
+            # YtD
+            ytdRun = StravaAthleteStats(
+                activity_id=StravaAthleteStats.generate_id(),
+                activity_count=data["ytd_run_totals"]["count"],
+                athlete_id=athlete_id,
+                date_refreshed=date_refreshed,
+                distance=data["ytd_run_totals"]["distance"],
+                elapsed_time=data["ytd_run_totals"]["elapsed_time"],
+                elevation_gain=data["ytd_run_totals"]["elevation_gain"],
+                moving_time=data["ytd_run_totals"]["moving_time"],
+                stat_type="year_to_date",
+                sport_type="running",
+            )
+            ytdRide = StravaAthleteStats(
+                activity_id=StravaAthleteStats.generate_id(),
+                activity_count=data["ytd_ride_totals"]["count"],
+                athlete_id=athlete_id,
+                date_refreshed=date_refreshed,
+                distance=data["ytd_ride_totals"]["distance"],
+                elapsed_time=data["ytd_ride_totals"]["elapsed_time"],
+                elevation_gain=data["ytd_ride_totals"]["elevation_gain"],
+                moving_time=data["ytd_ride_totals"]["moving_time"],
+                stat_type="year_to_date",
+                sport_type="cycling",
+            )
+            ytdSwim = StravaAthleteStats(
+                activity_id=StravaAthleteStats.generate_id(),
+                activity_count=data["ytd_swim_totals"]["count"],
+                athlete_id=athlete_id,
+                date_refreshed=date_refreshed,
+                distance=data["ytd_swim_totals"]["distance"],
+                elapsed_time=data["ytd_swim_totals"]["elapsed_time"],
+                elevation_gain=data["ytd_swim_totals"]["elevation_gain"],
+                moving_time=data["ytd_swim_totals"]["moving_time"],
+                stat_type="year_to_date",
+                sport_type="swimming",
+            )
 
-        # Stats
-        stats = [
-            allRun,
-            allRide,
-            allSwim,
-            recentRun,
-            recentRide,
-            recentSwim,
-            ytdRun,
-            ytdRide,
-            ytdSwim,
-        ]
-        return stats
+            # Stats
+            stats = [
+                allRun,
+                allRide,
+                allSwim,
+                recentRun,
+                recentRide,
+                recentSwim,
+                ytdRun,
+                ytdRide,
+                ytdSwim,
+            ]
+            log_item.log_actions(
+                data_items=len(stats),
+                description=r.reason,
+                status_code=r.status_code,
+            )
+        else:
+            log_item.log_actions(
+                data_items=0,
+                description=r.reason,
+                status_code=r.status_code,
+            )
+
+        return log_item, stats
 
     def FetchAllAthleteActivities(self):
+        # Log
+        log_item = LogItem(
+            project_name="strava", task_name=self.FetchAllAthleteActivities.__name__
+        )
+
         # First item is the latest, last item is the oldest activity.
         data = list()
         nextPage = True
@@ -333,19 +362,35 @@ class StravaApi(Authenticator):
                 else:
                     nextPage = False
             else:
-                print(status_code, r)
+                log_item.log_actions(
+                    data_items=len(data),
+                    description=r.reason,
+                    status_code=r.status_code,
+                )
                 nextPage = False
 
-        return data
+        log_item.log_actions(
+            data_items=len(data),
+            description=r.reason,
+            status_code=r.status_code,
+        )
+        return log_item, data
 
 
 def main() -> None:
+    # Admin
     dataPath = os.path.join(pathlib.Path(__file__).parent.resolve(), "sql")
+
+    # Main
     strava = StravaApi()
-    stats = strava.FetchAthleteStats()
-    activities = strava.FetchAllAthleteActivities()
+    stats_log, stats = strava.FetchAthleteStats()
+    activities_log, activities = strava.FetchAllAthleteActivities()
     stravaData = StravaData(athlete_stats=stats, athlete_activities=activities)
     stravaData.save_data_to_sql(schema="strava", sql_folder_path=dataPath)
+
+    # Log
+    L = LogData(dag_logs=[strava.auth_log, stats_log, activities_log])
+    L.save_data_to_sql(schema="log", sql_folder_path=dataPath)
 
 
 if __name__ == "__main__":

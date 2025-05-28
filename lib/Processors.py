@@ -4,123 +4,12 @@ import json
 import os
 import pathlib
 import platform
-from dataclasses import asdict, fields
+import random
+import string
+from dataclasses import asdict, dataclass, fields
 from datetime import datetime, timedelta
 
 import requests
-
-
-class Authenticator:
-    def loadJson(path=None, account=None):
-        jsonFile = json.load(open(path, "r"))
-        return jsonFile[account]
-
-    def __init__(self, account):
-        self.account = account
-        if platform.system() == "Windows":
-            self.path = os.path.join(
-                pathlib.Path(__file__).parent.parent.resolve(),
-                "assets",
-                "credentials.json",
-            )
-        else:
-            self.path = os.path.join(
-                pathlib.Path(__file__).parent.parent.resolve(),
-                "assets",
-                "credentials.json",
-            )
-        self.today = datetime.now()
-        self.keys = Authenticator.loadJson(path=self.path, account=self.account)
-
-    def getClientId(self):
-        return self.keys["CLIENT_ID"]
-
-    def getClientSecret(self):
-        return self.keys["CLIENT_SECRET"]
-
-    def getCode(self):
-        return self.keys["CODE"]
-
-    def getAccessToken(self):
-        return self.keys["ACCESS_TOKEN"]
-
-    def getExpiryDate(self):
-        return self.keys["EXPIRY_DATE"]
-
-    def getGrantType(self):
-        return self.keys["GRANT_TYPE"]
-
-    def getRefreshToken(self):
-        return self.keys["REFRESH_TOKEN"]
-
-    def getRefreshTokenUrl(self):
-        return self.keys["TOKEN_URL"]
-
-    def getHeaders(self):
-        headers = {
-            "Authorization": f"Bearer {self.getAccessToken()}",
-            "Content-Type": "application/json",
-        }
-        return headers
-
-    def isTokenExpired(self) -> bool:
-        expiryDate = datetime.strptime(self.keys["EXPIRY_DATE"], "%Y-%m-%d %H:%M:%S")
-        if expiryDate < self.today:
-            return True
-
-    def saveJson(self):
-        with open(self.path, "r+") as jsonFile:
-            data = json.load(jsonFile)
-            data[self.account] = self.keys
-            jsonFile.seek(0)
-            json.dump(data, jsonFile, indent=4, sort_keys=False)
-            jsonFile.truncate()
-
-    def RequestRefreshToken(self):
-        isTokenExpired = self.isTokenExpired()
-        if isTokenExpired:
-            # SPOTIFY
-            if self.account == "SPOTIFY":
-                auth_client = self.getClientId() + ":" + self.getClientSecret()
-                auth_encode = "Basic " + base64.b64encode(auth_client.encode()).decode()
-                payload = {
-                    "grant_type": "refresh_token",
-                    "refresh_token": self.getRefreshToken(),
-                    # "client_id": self.getClientId(),
-                    "code": self.getCode(),
-                }
-                headers = {"Authorization": auth_encode}
-                url = self.getRefreshTokenUrl()
-                r = requests.post(url=url, headers=headers, data=payload)
-            # STRAVA
-            elif self.account == "STRAVA":
-                payload = {
-                    "grant_type": "refresh_token",
-                    "client_id": self.getClientId(),
-                    "client_secret": self.getClientSecret(),
-                    "refresh_token": self.getRefreshToken(),
-                }
-                url = self.getRefreshTokenUrl()
-                r = requests.post(url=url, data=payload)
-
-            if r.status_code == 200:
-                response = r.json()
-                expires_in = response["expires_in"]
-                new_expiry_date = self.today + timedelta(seconds=expires_in)
-
-                # Updating keys
-                self.keys["ACCESS_TOKEN"] = response["access_token"]
-                self.keys["EXPIRY_DATE"] = new_expiry_date.strftime("%Y-%m-%d %H:%M:%S")
-                try:
-                    self.keys["SCOPE"] = response["scope"]
-                    self.keys["REFRESH_TOKEN"] = response["refresh_token"]
-                except:
-                    pass
-                # Saving to database.
-                self.saveJson()
-                return print("Access token refreshed.")
-            else:
-                print(r.json())
 
 
 class ItemProcessor:
@@ -201,3 +90,179 @@ class DataProcessor:
                 jsonFile.seek(0)
                 json.dump(json_data, jsonFile, indent=4, sort_keys=True)
                 jsonFile.truncate()
+
+
+@dataclass
+class LogItem(ItemProcessor):
+    data_items: int
+    description: str
+    finished: str
+    project_name: str
+    start: str
+    status_code: int
+    task_id: str
+    task_name: str
+
+    def generate_id():
+        characterList = string.ascii_letters + string.digits
+        myId = "".join([random.choice(characterList) for i in range(30)])
+        return myId
+
+    def format_date(self):
+        return self.start.strftime("%Y-%m-%d %H:%M:%S")
+        # return self.start.strptime("%Y-%m-%d %H:%M:%S")
+
+    def __init__(self, project_name, task_name):
+        self.data_items = 0
+        self.description = None
+        self.finished = None
+        self.project_name = project_name
+        self.start = datetime.now()
+        self.status_code = None
+        self.task_id = LogItem.generate_id()
+        self.task_name = task_name
+
+    def __str__(self):
+        return f"{self.project_name} - {self.task_name} (id: {self.task_id}) on {self.start}: {self.error_message} "
+
+    def log_actions(self, data_items=0, description="Success", status_code=200) -> None:
+        self.data_items = data_items
+        self.description = description
+        self.status_code = status_code
+        self.finished = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.start = self.format_date()
+        print("Log saved.")
+
+
+class Authenticator:
+    def loadJson(path=None, account=None):
+        jsonFile = json.load(open(path, "r"))
+        return jsonFile[account]
+
+    def __init__(self, account):
+        self.account = account
+        if platform.system() == "Windows":
+            self.path = os.path.join(
+                pathlib.Path(__file__).parent.parent.resolve(),
+                "assets",
+                "credentials.json",
+            )
+        else:
+            self.path = os.path.join(
+                pathlib.Path(__file__).parent.parent.resolve(),
+                "assets",
+                "credentials.json",
+            )
+        self.today = datetime.now()
+        self.keys = Authenticator.loadJson(path=self.path, account=self.account)
+
+    def getClientId(self):
+        return self.keys["CLIENT_ID"]
+
+    def getClientSecret(self):
+        return self.keys["CLIENT_SECRET"]
+
+    def getCode(self):
+        return self.keys["CODE"]
+
+    def getAccessToken(self):
+        return self.keys["ACCESS_TOKEN"]
+
+    def getExpiryDate(self):
+        return self.keys["EXPIRY_DATE"]
+
+    def getGrantType(self):
+        return self.keys["GRANT_TYPE"]
+
+    def getRefreshToken(self):
+        return self.keys["REFRESH_TOKEN"]
+
+    def getRefreshTokenUrl(self):
+        return self.keys["TOKEN_URL"]
+
+    def getHeaders(self):
+        headers = {
+            "Authorization": f"Bearer {self.getAccessToken()}",
+            "Content-Type": "application/json",
+        }
+        return headers
+
+    def isTokenExpired(self) -> bool:
+        expiryDate = datetime.strptime(self.keys["EXPIRY_DATE"], "%Y-%m-%d %H:%M:%S")
+        if expiryDate < self.today:
+            return True
+
+    def saveJson(self):
+        with open(self.path, "r+") as jsonFile:
+            data = json.load(jsonFile)
+            data[self.account] = self.keys
+            jsonFile.seek(0)
+            json.dump(data, jsonFile, indent=4, sort_keys=False)
+            jsonFile.truncate()
+
+    def RequestRefreshToken(self):
+        log_item = LogItem(
+            project_name=f"auth-{self.account.lower()}",
+            task_name=self.RequestRefreshToken.__name__,
+        )
+        isTokenExpired = self.isTokenExpired()
+        if isTokenExpired:
+            # SPOTIFY
+            if self.account == "SPOTIFY":
+                auth_client = self.getClientId() + ":" + self.getClientSecret()
+                auth_encode = "Basic " + base64.b64encode(auth_client.encode()).decode()
+                payload = {
+                    "grant_type": "refresh_token",
+                    "refresh_token": self.getRefreshToken(),
+                    # "client_id": self.getClientId(),
+                    "code": self.getCode(),
+                }
+                headers = {"Authorization": auth_encode}
+                url = self.getRefreshTokenUrl()
+                r = requests.post(url=url, headers=headers, data=payload)
+            # STRAVA
+            elif self.account == "STRAVA":
+                payload = {
+                    "grant_type": "refresh_token",
+                    "client_id": self.getClientId(),
+                    "client_secret": self.getClientSecret(),
+                    "refresh_token": self.getRefreshToken(),
+                }
+                url = self.getRefreshTokenUrl()
+                r = requests.post(url=url, data=payload)
+
+            if r.status_code == 200:
+                response = r.json()
+                expires_in = response["expires_in"]
+                new_expiry_date = self.today + timedelta(seconds=expires_in)
+
+                # Updating keys
+                self.keys["ACCESS_TOKEN"] = response["access_token"]
+                self.keys["EXPIRY_DATE"] = new_expiry_date.strftime("%Y-%m-%d %H:%M:%S")
+                try:
+                    self.keys["SCOPE"] = response["scope"]
+                    self.keys["REFRESH_TOKEN"] = response["refresh_token"]
+                except:
+                    pass
+                # Saving to database.
+                self.saveJson()
+                print("Access token refreshed.")
+                log_item.log_actions(
+                    data_items=0, description=r.reason, status_code=200
+                )
+                return log_item
+            else:
+                print(r.json())
+                log_item.log_actions(
+                    data_items=0,
+                    description=r.reason,
+                    status_code=r.status_code,
+                )
+                return log_item
+        else:
+            log_item.log_actions(
+                data_items=0,
+                description="OK",
+                status_code=200,
+            )
+            return log_item

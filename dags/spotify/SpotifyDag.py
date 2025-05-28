@@ -2,18 +2,23 @@ import os
 import pathlib
 import secrets
 import string
-
-# import sys
+import sys
 from dataclasses import dataclass
 from datetime import timedelta
 
 import requests
 
-from ...lib.Processors import Authenticator, DataProcessor, ItemProcessor
+# from ...lib.Logger import Logger, LogItem
+# from ...lib.Processors import Authenticator, DataProcessor, ItemProcessor
 
-# lib = os.path.join(pathlib.Path(__file__).parent.parent.parent.resolve(), "lib")
-# sys.path.append(lib)
-# from Processors import Authenticator, DataProcessor, ItemProcessor
+lib = os.path.join(pathlib.Path(__file__).parent.parent.parent.resolve(), "lib")
+sys.path.append(lib)
+from Processors import Authenticator, DataProcessor, ItemProcessor, LogItem
+
+
+@dataclass
+class LogData(DataProcessor):
+    dag_logs: list
 
 
 @dataclass
@@ -141,7 +146,7 @@ class SpotifyApi(Authenticator):
         super().__init__(account="SPOTIFY")
         # self.m_RequestAccessCode()
         # self.m_RequestAccessToken()
-        self.RequestRefreshToken()
+        self.auth_log = self.RequestRefreshToken()
 
     def FetchUserProfile(self):
         url = f"https://api.spotify.com/v1/users/{self.keys["USER_ID"]}"
@@ -154,6 +159,11 @@ class SpotifyApi(Authenticator):
         return ids
 
     def FetchBatchTracks(self) -> list:
+        # Log
+        log_item = LogItem(
+            project_name="spotify", task_name=self.FetchBatchTracks.__name__
+        )
+
         tracks_data = list()
         top_tracks = SpotifyApi.FetchTopItems(self, query_type="tracks", limit=15)
         print(f"Fetching {len(top_tracks)} number of Tracks...")
@@ -197,9 +207,27 @@ class SpotifyApi(Authenticator):
                 )
 
                 tracks_data.append(track)
-        return tracks_data
+            log_item.log_actions(
+                data_items=len(tracks_data),
+                description=r.reason,
+                status_code=r.status_code,
+            )
+        else:
+            log_item.log_actions(
+                data_items=len(tracks_data),
+                description=r.reason,
+                status_code=r.status_code,
+            )
+
+        data = (log_item, tracks_data)
+        return data
 
     def FetchBatchArtists(self) -> list:
+        # Log
+        log_item = LogItem(
+            project_name="spotify", task_name=self.FetchBatchArtists.__name__
+        )
+
         artists_data = list()
         top_artists = SpotifyApi.FetchTopItems(self, query_type="artists", limit=15)
         print(f"Fetching {len(top_artists)} number of Artists...")
@@ -236,16 +264,37 @@ class SpotifyApi(Authenticator):
                     thumbnail=thumbnail,
                 )
                 artists_data.append(artist)
-        return artists_data
+
+            log_item.log_actions(
+                data_items=len(artists_data),
+                description=r.reason,
+                status_code=r.status_code,
+            )
+        else:
+            log_item.log_actions(
+                data_items=len(artists_data),
+                description=r.reason,
+                status_code=r.status_code,
+            )
+
+        data = (log_item, artists_data)
+        return data
 
 
 def main() -> None:
+    # Admin
     dataPath = os.path.join(pathlib.Path(__file__).parent.resolve(), "sql")
     spotify = SpotifyApi()
-    artists = spotify.FetchBatchArtists()
-    tracks = spotify.FetchBatchTracks()
+
+    # Main
+    artists_log, artists = spotify.FetchBatchArtists()
+    tracks_log, tracks = spotify.FetchBatchTracks()
     spotifyData = SpotifyData(user_top_artists=artists, user_top_tracks=tracks)
     spotifyData.save_data_to_sql(schema="spotify", sql_folder_path=dataPath)
+
+    # Log
+    L = LogData(dag_logs=[spotify.auth_log, artists_log, tracks_log])
+    L.save_data_to_sql(schema="log", sql_folder_path=dataPath)
 
 
 if __name__ == "__main__":
