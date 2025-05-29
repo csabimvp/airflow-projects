@@ -234,7 +234,7 @@ def main():
 
     # Log process
     L = LogData(dag_logs=[log_item])
-    L.save_data_to_sql(schema="log", sql_folder_path=sql_folder_path)
+    L.save_data_to_sql(schema="logs", sql_folder_path=sql_folder_path)
 
 
 if __name__ == "__main__":

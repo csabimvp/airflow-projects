@@ -1,15 +1,15 @@
 -- sudo su postgres
 -- psql
-CREATE DATABASE spotify OWNER csabimvp;
+CREATE DATABASE utilities OWNER csabimvp;
 
 -- \q
 -- psql -U csabimvp -d spotify
 -- psql -U csabimvp -d rolling_stones
 -- PROD schema
-CREATE SCHEMA user_top_items AUTHORIZATION csabimvp;
+CREATE SCHEMA spotify AUTHORIZATION csabimvp;
 
 CREATE TABLE
-    IF NOT EXISTS user_top_items.tracks (
+    IF NOT EXISTS spotify.user_top_tracks (
         track_id VARCHAR PRIMARY KEY,
         track_name VARCHAR,
         artist_ids VARCHAR ARRAY,
@@ -20,12 +20,13 @@ CREATE TABLE
         external_url VARCHAR,
         uri VARCHAR,
         released_year INTEGER,
+        rs_rank NUMERIC,
         album_id VARCHAR,
         thumbnail VARCHAR
     );
 
 CREATE TABLE
-    IF NOT EXISTS user_top_items.artists (
+    IF NOT EXISTS spotify.user_top_artists (
         artist_id VARCHAR PRIMARY KEY,
         artist_name VARCHAR,
         albums VARCHAR ARRAY,
@@ -34,5 +35,6 @@ CREATE TABLE
         popularity NUMERIC,
         external_url VARCHAR,
         uri VARCHAR,
-        thumbnail VARCHAR
+        thumbnail VARCHAR,
+        rs_rank NUMERIC
     );

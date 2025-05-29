@@ -32,7 +32,7 @@ class Tracks(ItemProcessor):
     track_id: str
     track_name: str
     artist_ids: list
-    # rs_rank: int
+    rs_rank: int
     is_explicit: bool
     popularity: int
     duration_ms: int
@@ -69,6 +69,7 @@ class Artists(ItemProcessor):
     albums: list
     genres: list
     total_followers: int
+    rs_rank: int
     popularity: int
     external_url: str
     uri: str
@@ -174,10 +175,10 @@ class SpotifyApi(Authenticator):
         if r.status_code == 200:
             response = r.json()
 
-            for item in response["tracks"]:
+            for rank, item in enumerate(response["tracks"]):
                 name = item["name"]
                 track_id = item["id"]
-                # rs_rank = self.tracks[track_id]
+                rs_rank = rank
                 duration_ms = int(item["duration_ms"])
                 explicit = item["explicit"]
                 popularity = int(item["popularity"])
@@ -192,7 +193,7 @@ class SpotifyApi(Authenticator):
 
                 track = Tracks(
                     track_name=name,
-                    # rs_rank=rs_rank,
+                    rs_rank=rs_rank,
                     track_id=track_id,
                     artist_ids=artists,
                     album_id=album_id,
@@ -237,11 +238,12 @@ class SpotifyApi(Authenticator):
 
         if r.status_code == 200:
             response = r.json()
-            for item in response["artists"]:
+            for rank, item in enumerate(response["artists"]):
                 artist_id = item["id"]
                 artist_name = item["name"]
                 genres = item["genres"]
                 total_followers = item["followers"]["total"]
+                rs_rank = rank
                 popularity = item["popularity"]
                 external_url = item["external_urls"]["spotify"]
                 uri = item["uri"]
@@ -257,6 +259,7 @@ class SpotifyApi(Authenticator):
                     artist_name=artist_name,
                     albums=["NONE"],
                     genres=cleaned_genres,
+                    rs_rank=rs_rank,
                     total_followers=total_followers,
                     popularity=popularity,
                     external_url=external_url,
@@ -294,7 +297,7 @@ def main() -> None:
 
     # Log
     L = LogData(dag_logs=[spotify.auth_log, artists_log, tracks_log])
-    L.save_data_to_sql(schema="log", sql_folder_path=dataPath)
+    L.save_data_to_sql(schema="logs", sql_folder_path=dataPath)
 
 
 if __name__ == "__main__":

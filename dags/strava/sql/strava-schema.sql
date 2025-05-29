@@ -1,14 +1,14 @@
 -- sudo su postgres
 -- psql
-CREATE DATABASE strava OWNER csabimvp;
+CREATE DATABASE utilities OWNER csabimvp;
 
 -- \q
--- psql -U csabimvp -d strava
+-- psql -U csabimvp -d utilities
 -- PROD schema
 CREATE SCHEMA strava AUTHORIZATION csabimvp;
 
--- Stageing schema for testing.
-CREATE SCHEMA stageing AUTHORIZATION csabimvp;
+-- staging schema for testing.
+CREATE SCHEMA strava_staging AUTHORIZATION csabimvp;
 
 CREATE TABLE
     IF NOT EXISTS strava.athlete_stats (
@@ -60,7 +60,7 @@ CREATE TABLE
     );
 
 CREATE TABLE
-    IF NOT EXISTS stageing.athlete_stats (
+    IF NOT EXISTS strava_staging.athlete_stats (
         activity_id VARCHAR PRIMARY KEY,
         activity_count INTEGER,
         athlete_id VARCHAR,
@@ -74,7 +74,7 @@ CREATE TABLE
     );
 
 CREATE TABLE
-    IF NOT EXISTS stageing.athlete_activities (
+    IF NOT EXISTS strava_staging.athlete_activities (
         activity_id VARCHAR PRIMARY KEY,
         athlete_id VARCHAR,
         average_speed NUMERIC,

@@ -390,7 +390,7 @@ def main() -> None:
 
     # Log
     L = LogData(dag_logs=[strava.auth_log, stats_log, activities_log])
-    L.save_data_to_sql(schema="log", sql_folder_path=dataPath)
+    L.save_data_to_sql(schema="logs", sql_folder_path=dataPath)
 
 
 if __name__ == "__main__":
